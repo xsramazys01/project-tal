@@ -1,43 +1,93 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useAdminLogs } from "@/hooks/use-admin"
+import { supabase } from "@/lib/supabase"
 import { FileText, Download, RefreshCw } from "lucide-react"
+import { toast } from "sonner"
+
+interface ActivityLog {
+  id: string
+  user_id: string
+  action: string
+  entity_type: string
+  entity_id: string
+  details: any
+  created_at: string
+}
 
 export function AdminLogs() {
+  const [logs, setLogs] = useState<ActivityLog[]>([])
+  const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
-  const { logs, total, loading, error, refetch } = useAdminLogs(page, 50)
+  const [total, setTotal] = useState(0)
+  const limit = 50
+
+  useEffect(() => {
+    fetchLogs()
+  }, [page])
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true)
+
+      const { data, error, count } = await supabase
+        .from("activity_logs")
+        .select("*", { count: "exact" })
+        .range((page - 1) * limit, page * limit - 1)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+
+      setLogs(data || [])
+      setTotal(count || 0)
+    } catch (error) {
+      console.error("Error fetching logs:", error)
+      toast.error("Gagal memuat log aktivitas")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getActionBadgeColor = (action: string) => {
     switch (action.toLowerCase()) {
-      case "user_created":
-      case "user_role_updated":
+      case "created":
         return "default"
-      case "user_suspended":
-      case "user_deleted":
-        return "destructive"
-      case "setting_updated":
+      case "updated":
         return "secondary"
+      case "deleted":
+        return "destructive"
       default:
         return "outline"
     }
   }
 
   const formatAction = (action: string) => {
-    return action
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")
+    const actionMap: { [key: string]: string } = {
+      created: "Dibuat",
+      updated: "Diperbarui",
+      deleted: "Dihapus",
+    }
+    return actionMap[action] || action
+  }
+
+  const formatEntityType = (entityType: string) => {
+    const typeMap: { [key: string]: string } = {
+      tasks: "Tugas",
+      categories: "Kategori",
+      profiles: "Profil",
+      weekly_focus_goals: "Tujuan Mingguan",
+    }
+    return typeMap[entityType] || entityType
   }
 
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Loading Logs...</CardTitle>
+          <CardTitle>Memuat Log...</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -50,17 +100,6 @@ export function AdminLogs() {
     )
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-red-600">Error Loading Logs</CardTitle>
-          <CardDescription>{error}</CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -68,19 +107,19 @@ export function AdminLogs() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Admin Activity Logs
+            Log Aktivitas Sistem
           </CardTitle>
-          <CardDescription>Complete audit trail of all administrative actions</CardDescription>
+          <CardDescription>Jejak audit lengkap dari semua aktivitas sistem</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <Button variant="outline" onClick={refetch}>
+            <Button variant="outline" onClick={fetchLogs}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => toast.info("Fitur ekspor akan segera tersedia")}>
               <Download className="h-4 w-4 mr-2" />
-              Export Logs
+              Ekspor Log
             </Button>
           </div>
         </CardContent>
@@ -93,11 +132,11 @@ export function AdminLogs() {
             <table className="w-full">
               <thead className="border-b bg-gray-50">
                 <tr>
-                  <th className="text-left p-4 font-medium">Timestamp</th>
-                  <th className="text-left p-4 font-medium">Admin</th>
-                  <th className="text-left p-4 font-medium">Action</th>
-                  <th className="text-left p-4 font-medium">Target</th>
-                  <th className="text-left p-4 font-medium">Details</th>
+                  <th className="text-left p-4 font-medium">Waktu</th>
+                  <th className="text-left p-4 font-medium">Pengguna</th>
+                  <th className="text-left p-4 font-medium">Aksi</th>
+                  <th className="text-left p-4 font-medium">Entitas</th>
+                  <th className="text-left p-4 font-medium">Detail</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,14 +144,13 @@ export function AdminLogs() {
                   <tr key={log.id} className="border-b hover:bg-gray-50">
                     <td className="p-4">
                       <div className="text-sm">
-                        <div>{new Date(log.created_at).toLocaleDateString()}</div>
-                        <div className="text-gray-600">{new Date(log.created_at).toLocaleTimeString()}</div>
+                        <div>{new Date(log.created_at).toLocaleDateString("id-ID")}</div>
+                        <div className="text-gray-600">{new Date(log.created_at).toLocaleTimeString("id-ID")}</div>
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="text-sm">
-                        <div className="font-medium">{log.admin_id}</div>
-                        {log.ip_address && <div className="text-gray-600">{log.ip_address}</div>}
+                        <div className="font-mono text-xs">{log.user_id.substring(0, 8)}...</div>
                       </div>
                     </td>
                     <td className="p-4">
@@ -120,17 +158,15 @@ export function AdminLogs() {
                     </td>
                     <td className="p-4">
                       <div className="text-sm">
-                        <div className="font-medium">{log.target_type}</div>
-                        {log.target_id && (
-                          <div className="text-gray-600 font-mono text-xs">{log.target_id.substring(0, 8)}...</div>
-                        )}
+                        <div className="font-medium">{formatEntityType(log.entity_type)}</div>
+                        <div className="text-gray-600 font-mono text-xs">{log.entity_id.substring(0, 8)}...</div>
                       </div>
                     </td>
                     <td className="p-4">
                       {log.details && (
                         <div className="text-sm">
                           <details className="cursor-pointer">
-                            <summary className="text-blue-600 hover:text-blue-800">View Details</summary>
+                            <summary className="text-blue-600 hover:text-blue-800">Lihat Detail</summary>
                             <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-w-xs">
                               {JSON.stringify(log.details, null, 2)}
                             </pre>
@@ -149,14 +185,14 @@ export function AdminLogs() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600">
-          Showing {(page - 1) * 50 + 1} to {Math.min(page * 50, total)} of {total} logs
+          Menampilkan {(page - 1) * limit + 1} hingga {Math.min(page * limit, total)} dari {total} log
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>
-            Previous
+            Sebelumnya
           </Button>
-          <Button variant="outline" onClick={() => setPage(page + 1)} disabled={page * 50 >= total}>
-            Next
+          <Button variant="outline" onClick={() => setPage(page + 1)} disabled={page * limit >= total}>
+            Selanjutnya
           </Button>
         </div>
       </div>
@@ -164,32 +200,34 @@ export function AdminLogs() {
       {/* Log Statistics */}
       <Card>
         <CardHeader>
-          <CardTitle>Log Statistics</CardTitle>
-          <CardDescription>Summary of recent administrative activity</CardDescription>
+          <CardTitle>Statistik Log</CardTitle>
+          <CardDescription>Ringkasan aktivitas sistem terbaru</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-4">
-            <div className="text-center p-4 border rounded-lg">
+            <div className="text-center p-4 border rounded-lg bg-blue-50">
               <div className="text-2xl font-bold text-blue-600">
-                {logs.filter((log) => log.action.includes("user")).length}
+                {logs.filter((log) => log.entity_type === "tasks").length}
               </div>
-              <div className="text-sm text-gray-600">User Actions</div>
+              <div className="text-sm text-gray-600">Aktivitas Tugas</div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
+            <div className="text-center p-4 border rounded-lg bg-green-50">
               <div className="text-2xl font-bold text-green-600">
-                {logs.filter((log) => log.action.includes("setting")).length}
+                {logs.filter((log) => log.action === "created").length}
               </div>
-              <div className="text-sm text-gray-600">Setting Changes</div>
+              <div className="text-sm text-gray-600">Item Dibuat</div>
             </div>
-            <div className="text-center p-4 border rounded-lg">
+            <div className="text-center p-4 border rounded-lg bg-yellow-50">
+              <div className="text-2xl font-bold text-yellow-600">
+                {logs.filter((log) => log.action === "updated").length}
+              </div>
+              <div className="text-sm text-gray-600">Item Diperbarui</div>
+            </div>
+            <div className="text-center p-4 border rounded-lg bg-red-50">
               <div className="text-2xl font-bold text-red-600">
-                {logs.filter((log) => log.action.includes("delete") || log.action.includes("suspend")).length}
+                {logs.filter((log) => log.action === "deleted").length}
               </div>
-              <div className="text-sm text-gray-600">Security Actions</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{total}</div>
-              <div className="text-sm text-gray-600">Total Logs</div>
+              <div className="text-sm text-gray-600">Item Dihapus</div>
             </div>
           </div>
         </CardContent>

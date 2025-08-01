@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
+import { supabase } from "@/lib/supabase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { AdminDashboard } from "@/components/admin/admin-dashboard"
 import { AdminUserManagement } from "@/components/admin/admin-user-management"
 import { AdminSettings } from "@/components/admin/admin-settings"
 import { AdminLogs } from "@/components/admin/admin-logs"
-import { Shield, Users, Settings, FileText, AlertTriangle } from "lucide-react"
+import { Shield, Users, Settings, FileText, AlertTriangle, ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 
 export default function AdminPage() {
   const { user, loading } = useAuth()
@@ -25,59 +28,63 @@ export default function AdminPage() {
     }
 
     if (user) {
-      // Check user role
-      import("@/lib/supabase").then(({ getSupabaseClient }) => {
-        const supabase = getSupabaseClient()
-        supabase
-          .from("profiles")
-          .select("role, suspended")
-          .eq("id", user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (error || !data) {
-              console.error("Error fetching user role:", error)
-              router.push("/dashboard")
-              return
-            }
-
-            if (data.suspended || !["admin", "super_admin"].includes(data.role)) {
-              router.push("/dashboard")
-              return
-            }
-
-            setUserRole(data.role)
-            setCheckingRole(false)
-          })
-      })
+      checkUserRole()
     }
   }, [user, loading, router])
 
+  const checkUserRole = async () => {
+    try {
+      const { data, error } = await supabase.from("profiles").select("role, suspended").eq("id", user?.id).single()
+
+      if (error) {
+        console.error("Error fetching user role:", error)
+        toast.error("Gagal memuat data pengguna")
+        router.push("/dashboard")
+        return
+      }
+
+      if (!data || data.suspended || !["admin", "super_admin"].includes(data.role)) {
+        toast.error("Anda tidak memiliki akses ke panel admin")
+        router.push("/dashboard")
+        return
+      }
+
+      setUserRole(data.role)
+      setCheckingRole(false)
+    } catch (error) {
+      console.error("Error checking user role:", error)
+      toast.error("Terjadi kesalahan saat memuat data")
+      router.push("/dashboard")
+    }
+  }
+
   if (loading || checkingRole) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat panel admin...</p>
+        </div>
       </div>
     )
   }
 
   if (!user || !userRole) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-96">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Access Denied
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Akses Ditolak
             </CardTitle>
-            <CardDescription>You don't have permission to access the admin panel.</CardDescription>
+            <CardDescription>Anda tidak memiliki izin untuk mengakses panel admin.</CardDescription>
           </CardHeader>
           <CardContent>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-            >
-              Return to Dashboard
-            </button>
+            <Button onClick={() => router.push("/dashboard")} className="w-full" variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Kembali ke Dashboard
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -87,23 +94,26 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Shield className="h-8 w-8 text-blue-600" />
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <Shield className="h-6 w-6 text-blue-600" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-                <p className="text-gray-600">System administration and management</p>
+                <h1 className="text-2xl font-bold text-gray-900">Panel Admin</h1>
+                <p className="text-gray-600">Administrasi dan manajemen sistem</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <Badge variant={userRole === "super_admin" ? "default" : "secondary"}>
+              <Badge variant={userRole === "super_admin" ? "default" : "secondary"} className="px-3 py-1">
                 {userRole === "super_admin" ? "Super Admin" : "Admin"}
               </Badge>
-              <button onClick={() => router.push("/dashboard")} className="text-gray-600 hover:text-gray-900">
-                Back to Dashboard
-              </button>
+              <Button onClick={() => router.push("/dashboard")} variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Dashboard
+              </Button>
             </div>
           </div>
         </div>
@@ -112,47 +122,66 @@ export default function AdminPage() {
       {/* Content */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 bg-white p-1 rounded-lg shadow-sm">
+            <TabsTrigger
+              value="dashboard"
+              className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+            >
               <Shield className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger
+              value="users"
+              className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+            >
               <Users className="h-4 w-4" />
-              Users
+              Pengguna
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2" disabled={userRole !== "super_admin"}>
+            <TabsTrigger
+              value="settings"
+              className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+              disabled={userRole !== "super_admin"}
+            >
               <Settings className="h-4 w-4" />
-              Settings
+              Pengaturan
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
+            <TabsTrigger
+              value="logs"
+              className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+            >
               <FileText className="h-4 w-4" />
-              Logs
+              Log Aktivitas
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard">
+          <TabsContent value="dashboard" className="space-y-6">
             <AdminDashboard />
           </TabsContent>
 
-          <TabsContent value="users">
+          <TabsContent value="users" className="space-y-6">
             <AdminUserManagement />
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="space-y-6">
             {userRole === "super_admin" ? (
               <AdminSettings />
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle>Access Restricted</CardTitle>
-                  <CardDescription>Only Super Admins can access system settings.</CardDescription>
+                  <CardTitle className="flex items-center gap-2 text-amber-600">
+                    <AlertTriangle className="h-5 w-5" />
+                    Akses Terbatas
+                  </CardTitle>
+                  <CardDescription>Hanya Super Admin yang dapat mengakses pengaturan sistem.</CardDescription>
                 </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">Hubungi Super Admin untuk mengubah pengaturan sistem.</p>
+                </CardContent>
               </Card>
             )}
           </TabsContent>
 
-          <TabsContent value="logs">
+          <TabsContent value="logs" className="space-y-6">
             <AdminLogs />
           </TabsContent>
         </Tabs>

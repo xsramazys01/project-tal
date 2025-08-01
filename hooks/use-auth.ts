@@ -1,21 +1,29 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase"
-import type { User } from "@supabase/supabase-js"
+import { useState, useEffect, useCallback } from "react"
+import type { User, AuthError } from "@supabase/supabase-js"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
+
+export interface AuthState {
+  user: User | null
+  loading: boolean
+  error: AuthError | null
+}
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<AuthState>({
+    user: null,
+    loading: true,
+    error: null,
+  })
+  const router = useRouter()
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      setLoading(false)
+      setState({ user: null, loading: false, error: null })
       return
     }
-
-    const supabase = getSupabaseClient()
 
     // Get initial session
     const getInitialSession = async () => {
@@ -25,11 +33,9 @@ export function useAuth() {
           error,
         } = await supabase.auth.getSession()
         if (error) throw error
-        setUser(session?.user ?? null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Authentication error")
-      } finally {
-        setLoading(false)
+        setState({ user: session?.user ?? null, loading: false, error: null })
+      } catch (error) {
+        setState({ user: null, loading: false, error: error as AuthError })
       }
     }
 
@@ -39,82 +45,136 @@ export function useAuth() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+      setState({ user: session?.user ?? null, loading: false, error: null })
+
+      if (event === "SIGNED_IN") {
+        router.refresh()
+      } else if (event === "SIGNED_OUT") {
+        router.push("/")
+      }
     })
 
     return () => subscription.unsubscribe()
+  }, [router])
+
+  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
+    if (!isSupabaseConfigured()) {
+      throw new Error("Supabase is not configured")
+    }
+
+    setState((prev) => ({ ...prev, loading: true, error: null }))
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      })
+
+      if (error) throw error
+
+      setState((prev) => ({ ...prev, loading: false }))
+      return data
+    } catch (error) {
+      const authError = error as AuthError
+      setState((prev) => ({ ...prev, loading: false, error: authError }))
+      throw authError
+    }
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured()) {
-      throw new Error("Supabase not configured")
+      throw new Error("Supabase is not configured")
     }
 
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    setState((prev) => ({ ...prev, loading: true, error: null }))
 
-    if (error) throw error
-    return data
-  }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-  const signUp = async (email: string, password: string, fullName?: string) => {
+      if (error) throw error
+
+      setState((prev) => ({ ...prev, loading: false }))
+      return data
+    } catch (error) {
+      const authError = error as AuthError
+      setState((prev) => ({ ...prev, loading: false, error: authError }))
+      throw authError
+    }
+  }, [])
+
+  const signInWithGoogle = useCallback(async () => {
     if (!isSupabaseConfigured()) {
-      throw new Error("Supabase not configured")
+      throw new Error("Supabase is not configured")
     }
 
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
         },
-      },
-    })
+      })
 
-    if (error) throw error
-    return data
-  }
+      if (error) throw error
+      return data
+    } catch (error) {
+      const authError = error as AuthError
+      setState((prev) => ({ ...prev, error: authError }))
+      throw authError
+    }
+  }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     if (!isSupabaseConfigured()) {
       return
     }
 
-    const supabase = getSupabaseClient()
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
-  }
+    setState((prev) => ({ ...prev, loading: true, error: null }))
 
-  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+
+      setState({ user: null, loading: false, error: null })
+    } catch (error) {
+      const authError = error as AuthError
+      setState((prev) => ({ ...prev, loading: false, error: authError }))
+      throw authError
+    }
+  }, [])
+
+  const resetPassword = useCallback(async (email: string) => {
     if (!isSupabaseConfigured()) {
-      throw new Error("Supabase not configured")
+      throw new Error("Supabase is not configured")
     }
 
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
-    })
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
 
-    if (error) throw error
-    return data
-  }
+      if (error) throw error
+      return data
+    } catch (error) {
+      const authError = error as AuthError
+      throw authError
+    }
+  }, [])
 
   return {
-    user,
-    loading,
-    error,
-    signIn,
+    ...state,
     signUp,
-    signOut,
+    signIn,
     signInWithGoogle,
+    signOut,
+    resetPassword,
   }
 }

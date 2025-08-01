@@ -1,140 +1,201 @@
 "use client"
 
+import { useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { CheckCircle2, Circle, Clock, MoreHorizontal, Edit, Trash2, AlertCircle } from "lucide-react"
+import { Clock, Calendar, MoreHorizontal, Edit, Trash2, CheckCircle, AlertCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Task {
   id: string
   title: string
-  description?: string
-  category: string
-  priority: "high" | "medium" | "low"
-  deadline: string
+  description: string | null
   completed: boolean
-  estimatedTime?: number
-  dayOfWeek: number
+  priority: "low" | "medium" | "high"
+  deadline: string | null
+  day_of_week: number | null
+  estimated_time: number | null
+  is_scheduled: boolean
+  created_at: string
+  category_id: string | null
+  categories?: {
+    name: string
+    color: string
+    emoji: string
+  }
 }
 
 interface TaskCardProps {
   task: Task
-  onToggleComplete: () => void
-  onEdit: (task: Task) => void
-  onDelete: () => void
-  categories: Array<{ name: string; color: string }>
+  onUpdate: (taskId: string, updates: Partial<Task>) => void
+  onDelete: (taskId: string) => void
+  showScheduleButton?: boolean
 }
 
-export function TaskCard({ task, onToggleComplete, onEdit, onDelete, categories }: TaskCardProps) {
-  const category = categories.find((cat) => cat.name === task.category)
-  const isOverdue = new Date(task.deadline) < new Date() && !task.completed
+const priorityColors = {
+  low: "bg-green-100 text-green-800 border-green-200",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  high: "bg-red-100 text-red-800 border-red-200",
+}
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 border-red-200"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
-      case "low":
-        return "bg-green-100 text-green-800 border-green-200"
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+const priorityLabels = {
+  low: "Rendah",
+  medium: "Sedang",
+  high: "Tinggi",
+}
+
+export function TaskCard({ task, onUpdate, onDelete, showScheduleButton = true }: TaskCardProps) {
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const handleToggleComplete = async () => {
+    setIsUpdating(true)
+    try {
+      await onUpdate(task.id, { completed: !task.completed })
+    } finally {
+      setIsUpdating(false)
     }
   }
 
+  const isOverdue = task.deadline && new Date(task.deadline) < new Date() && !task.completed
+
   const formatDeadline = (deadline: string) => {
     const date = new Date(deadline)
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
+    const now = new Date()
+    const diffTime = date.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return "Hari ini"
+    if (diffDays === 1) return "Besok"
+    if (diffDays === -1) return "Kemarin"
+    if (diffDays < 0) return `${Math.abs(diffDays)} hari yang lalu`
+    if (diffDays <= 7) return `${diffDays} hari lagi`
+
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
     })
   }
 
   return (
-    <div
-      className={`p-3 rounded-lg border transition-all ${
-        task.completed
-          ? "bg-gray-50 border-gray-200 opacity-75"
-          : isOverdue
-            ? "bg-red-50 border-red-200 shadow-sm"
-            : "bg-white border-gray-200 hover:shadow-md hover:border-gray-300"
-      }`}
+    <Card
+      className={cn(
+        "transition-all duration-200 hover:shadow-md",
+        task.completed && "opacity-75",
+        isOverdue && "border-red-200 bg-red-50",
+      )}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-start space-x-3 flex-1">
-          <Button variant="ghost" size="sm" className="p-0 h-auto mt-0.5" onClick={onToggleComplete}>
-            {task.completed ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            ) : (
-              <Circle className="h-5 w-5 text-gray-400 hover:text-emerald-500" />
-            )}
-          </Button>
+      <CardContent className="p-4">
+        <div className="flex items-start space-x-3">
+          {/* Checkbox */}
+          <div className="flex-shrink-0 mt-1">
+            <Checkbox
+              checked={task.completed}
+              onCheckedChange={handleToggleComplete}
+              disabled={isUpdating}
+              className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+            />
+          </div>
 
+          {/* Task Content */}
           <div className="flex-1 min-w-0">
-            <h4
-              className={`text-sm font-semibold leading-tight ${
-                task.completed ? "line-through text-gray-500" : "text-gray-900"
-              }`}
-            >
-              {task.title}
-            </h4>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className={cn("font-medium text-gray-900 mb-1", task.completed && "line-through text-gray-500")}>
+                  {task.title}
+                </h3>
 
-            {task.description && (
-              <p className={`text-xs mt-1 leading-relaxed ${task.completed ? "text-gray-400" : "text-gray-600"}`}>
-                {task.description}
-              </p>
-            )}
+                {task.description && (
+                  <p className={cn("text-sm text-gray-600 mb-2", task.completed && "line-through")}>
+                    {task.description}
+                  </p>
+                )}
 
-            <div className="flex items-center flex-wrap gap-2 mt-2">
-              {category && (
-                <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full ${category.color} mr-1.5`} />
-                  <span className="text-xs font-medium text-gray-600">{task.category}</span>
+                {/* Badges and Info */}
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {/* Priority Badge */}
+                  <Badge variant="outline" className={priorityColors[task.priority]}>
+                    {priorityLabels[task.priority]}
+                  </Badge>
+
+                  {/* Category Badge */}
+                  {task.categories && (
+                    <Badge
+                      variant="outline"
+                      style={{
+                        backgroundColor: `${task.categories.color}20`,
+                        borderColor: task.categories.color,
+                        color: task.categories.color,
+                      }}
+                    >
+                      {task.categories.emoji} {task.categories.name}
+                    </Badge>
+                  )}
+
+                  {/* Overdue Badge */}
+                  {isOverdue && (
+                    <Badge variant="destructive" className="animate-pulse">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      Terlambat
+                    </Badge>
+                  )}
+
+                  {/* Completed Badge */}
+                  {task.completed && (
+                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Selesai
+                    </Badge>
+                  )}
                 </div>
-              )}
 
-              <Badge variant="outline" className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                {task.priority.toUpperCase()}
-              </Badge>
+                {/* Task Meta Info */}
+                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                  {task.deadline && (
+                    <div className={cn("flex items-center", isOverdue && "text-red-600 font-medium")}>
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {formatDeadline(task.deadline)}
+                    </div>
+                  )}
 
-              {task.deadline && (
-                <div
-                  className={`flex items-center text-xs font-medium ${isOverdue ? "text-red-600" : "text-gray-500"}`}
-                >
-                  {isOverdue && <AlertCircle className="h-3 w-3 mr-1" />}
-                  <Clock className="h-3 w-3 mr-1" />
-                  {formatDeadline(task.deadline)}
+                  {task.estimated_time && (
+                    <div className="flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {task.estimated_time} menit
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {task.estimatedTime && (
-                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                  {task.estimatedTime}h
-                </span>
-              )}
+              {/* Actions Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onUpdate(task.id, { completed: !task.completed })}>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {task.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Tugas
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onDelete(task.id)} className="text-red-600 focus:text-red-600">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Hapus Tugas
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="p-1 h-auto hover:bg-gray-100">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(task)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-red-600">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

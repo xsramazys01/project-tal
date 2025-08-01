@@ -1,47 +1,48 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Target, TrendingUp, Users, Calendar, BarChart3 } from "lucide-react"
-import Link from "next/link"
-import { isSupabaseConfigured } from "@/lib/supabase"
+import { DatabaseTest } from "@/components/database-test"
+import {
+  CheckCircle,
+  Calendar,
+  BarChart3,
+  Users,
+  Smartphone,
+  Shield,
+  Zap,
+  Target,
+  TrendingUp,
+  Clock,
+} from "lucide-react"
 
 export default function HomePage() {
-  const [supabaseConfigured, setSupabaseConfigured] = useState(false)
-
-  useEffect(() => {
-    setSupabaseConfigured(isSupabaseConfigured())
-  }, [])
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Target className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">To-Achieve List</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            {!supabaseConfigured && (
-              <Badge variant="outline" className="text-orange-600 border-orange-600">
-                Demo Mode
-              </Badge>
-            )}
-            {supabaseConfigured ? (
-              <>
-                <Link href="/login">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-                <Link href="/register">
-                  <Button>Get Started</Button>
-                </Link>
-              </>
-            ) : (
-              <Button disabled>Configure Supabase to Get Started</Button>
-            )}
+      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">TAL</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Task and Life Manager</h1>
+                <p className="text-sm text-gray-600">Kelola tugas dan hidup Anda dengan mudah</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Link href="/login">
+                <Button variant="outline">Masuk</Button>
+              </Link>
+              <Link href="/register">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  Daftar
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -49,48 +50,32 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="py-20">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            Achieve More with
-            <span className="text-blue-600"> Smart Planning</span>
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Transform your productivity with our intelligent task management system. Set weekly goals, track progress,
-            and achieve your objectives with data-driven insights.
-          </p>
-
-          {!supabaseConfigured && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8 max-w-2xl mx-auto">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">🚀 Setup Required</h3>
-              <p className="text-yellow-700 mb-4">
-                To use this application, you need to configure Supabase. Update your{" "}
-                <code className="bg-yellow-100 px-2 py-1 rounded">.env.local</code> file with your Supabase credentials.
-              </p>
-              <div className="text-left bg-gray-900 text-green-400 p-4 rounded font-mono text-sm">
-                <div>NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co</div>
-                <div>NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</div>
-              </div>
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-5xl font-bold text-gray-900 mb-6">
+              Kelola Hidup Anda dengan{" "}
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Lebih Efektif
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              TAL adalah platform manajemen tugas dan kehidupan yang membantu Anda mengorganisir aktivitas harian,
+              mencapai tujuan, dan meningkatkan produktivitas dengan fitur-fitur canggih dan antarmuka yang intuitif.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/register">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  Mulai Gratis Sekarang
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline">
+                  Sudah Punya Akun? Masuk
+                </Button>
+              </Link>
             </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {supabaseConfigured ? (
-              <>
-                <Link href="/register">
-                  <Button size="lg" className="text-lg px-8 py-3">
-                    Start Free Trial
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button variant="outline" size="lg" className="text-lg px-8 py-3 bg-transparent">
-                    Sign In
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <Button disabled size="lg" className="text-lg px-8 py-3">
-                Configure Supabase First
-              </Button>
-            )}
           </div>
         </div>
       </section>
@@ -98,61 +83,83 @@ export default function HomePage() {
       {/* Features Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">Everything You Need to Succeed</h3>
+          <div className="text-center mb-16">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">Fitur Unggulan</h3>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Dilengkapi dengan berbagai fitur canggih untuk membantu Anda mengelola tugas dan kehidupan dengan lebih
+              efisien
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <CheckCircle className="h-12 w-12 text-green-600 mb-4" />
-                <CardTitle>Smart Task Management</CardTitle>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                </div>
+                <CardTitle>Manajemen Tugas</CardTitle>
                 <CardDescription>
-                  Organize tasks by priority, category, and deadlines with intelligent scheduling
+                  Buat, kelola, dan lacak tugas dengan sistem prioritas, kategori, dan deadline yang fleksibel
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <Target className="h-12 w-12 text-blue-600 mb-4" />
-                <CardTitle>Weekly Goal Setting</CardTitle>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                  <Calendar className="h-6 w-6 text-green-600" />
+                </div>
+                <CardTitle>Kalender Terintegrasi</CardTitle>
                 <CardDescription>
-                  Set and track weekly objectives with progress monitoring and achievement insights
+                  Visualisasi tugas dan jadwal dalam tampilan kalender yang mudah dipahami dan digunakan
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <BarChart3 className="h-12 w-12 text-purple-600 mb-4" />
-                <CardTitle>Performance Analytics</CardTitle>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
+                </div>
+                <CardTitle>Analytics & Laporan</CardTitle>
                 <CardDescription>
-                  Detailed analytics and reports to understand your productivity patterns
+                  Analisis produktivitas dengan grafik dan laporan detail untuk memahami pola kerja Anda
                 </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <Calendar className="h-12 w-12 text-orange-600 mb-4" />
-                <CardTitle>Calendar Integration</CardTitle>
-                <CardDescription>Google Calendar-style weekly view with drag-and-drop task scheduling</CardDescription>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                  <Smartphone className="h-6 w-6 text-orange-600" />
+                </div>
+                <CardTitle>Mobile Responsive</CardTitle>
+                <CardDescription>
+                  Akses dari mana saja dengan antarmuka yang dioptimalkan untuk desktop, tablet, dan smartphone
+                </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <TrendingUp className="h-12 w-12 text-red-600 mb-4" />
-                <CardTitle>Progress Tracking</CardTitle>
-                <CardDescription>Visual progress indicators and completion rates to keep you motivated</CardDescription>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-red-600" />
+                </div>
+                <CardTitle>Keamanan Tinggi</CardTitle>
+                <CardDescription>
+                  Data Anda aman dengan enkripsi end-to-end dan sistem autentikasi yang robust
+                </CardDescription>
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <Users className="h-12 w-12 text-indigo-600 mb-4" />
+                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="h-6 w-6 text-yellow-600" />
+                </div>
                 <CardTitle>Admin Dashboard</CardTitle>
                 <CardDescription>
-                  Comprehensive admin panel for user management and system configuration
+                  Panel admin lengkap untuk mengelola pengguna, sistem, dan monitoring aktivitas aplikasi
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -161,58 +168,143 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold text-gray-900 mb-12">Trusted by Productive People</h3>
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="container mx-auto px-4">
+          <div className="text-center text-white mb-16">
+            <h3 className="text-3xl font-bold mb-4">Mengapa Memilih TAL?</h3>
+            <p className="text-blue-100 max-w-2xl mx-auto">
+              Platform yang telah terbukti membantu ribuan pengguna meningkatkan produktivitas dan mencapai tujuan
+              mereka
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div>
-              <div className="text-4xl font-bold text-blue-600 mb-2">10,000+</div>
-              <div className="text-gray-600">Tasks Completed</div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="text-center text-white">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Target className="h-8 w-8" />
+              </div>
+              <div className="text-3xl font-bold mb-2">10K+</div>
+              <div className="text-blue-100">Tugas Diselesaikan</div>
             </div>
-            <div>
-              <div className="text-4xl font-bold text-green-600 mb-2">95%</div>
-              <div className="text-gray-600">Goal Achievement Rate</div>
+
+            <div className="text-center text-white">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8" />
+              </div>
+              <div className="text-3xl font-bold mb-2">1K+</div>
+              <div className="text-blue-100">Pengguna Aktif</div>
             </div>
-            <div>
-              <div className="text-4xl font-bold text-purple-600 mb-2">500+</div>
-              <div className="text-gray-600">Active Users</div>
+
+            <div className="text-center text-white">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="h-8 w-8" />
+              </div>
+              <div className="text-3xl font-bold mb-2">95%</div>
+              <div className="text-blue-100">Tingkat Kepuasan</div>
+            </div>
+
+            <div className="text-center text-white">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8" />
+              </div>
+              <div className="text-3xl font-bold mb-2">24/7</div>
+              <div className="text-blue-100">Dukungan</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold text-white mb-6">Ready to Achieve Your Goals?</h3>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of users who have transformed their productivity with our platform.
-          </p>
+      {/* Database Test Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">Test Sistem Database</h3>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Verifikasi bahwa sistem database telah dikonfigurasi dengan benar dan siap digunakan
+            </p>
+          </div>
+          <DatabaseTest />
+        </div>
+      </section>
 
-          {supabaseConfigured ? (
-            <Link href="/register">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-3">
-                Get Started Today
-              </Button>
-            </Link>
-          ) : (
-            <Button disabled size="lg" variant="secondary" className="text-lg px-8 py-3">
-              Setup Supabase to Continue
-            </Button>
-          )}
+      {/* CTA Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-3xl mx-auto">
+            <h3 className="text-3xl font-bold text-gray-900 mb-6">Siap Meningkatkan Produktivitas Anda?</h3>
+            <p className="text-xl text-gray-600 mb-8">
+              Bergabunglah dengan ribuan pengguna yang telah merasakan manfaat TAL dalam mengelola tugas dan kehidupan
+              mereka
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/register">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  <Zap className="mr-2 h-5 w-5" />
+                  Mulai Sekarang - Gratis
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline">
+                  Masuk ke Akun Anda
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Target className="h-6 w-6" />
-              <span className="text-lg font-semibold">To-Achieve List</span>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">TAL</span>
+                </div>
+                <span className="font-bold text-lg">Task and Life Manager</span>
+              </div>
+              <p className="text-gray-400">
+                Platform manajemen tugas dan kehidupan yang membantu Anda mencapai produktivitas maksimal.
+              </p>
             </div>
-            <div className="text-gray-400">© 2025 To-Achieve List. Built with Next.js and Supabase.</div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Fitur</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>Manajemen Tugas</li>
+                <li>Kalender</li>
+                <li>Analytics</li>
+                <li>Mobile App</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Dukungan</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>Dokumentasi</li>
+                <li>FAQ</li>
+                <li>Kontak</li>
+                <li>Status Sistem</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Perusahaan</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>Tentang Kami</li>
+                <li>Blog</li>
+                <li>Karir</li>
+                <li>Kebijakan Privasi</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 TAL - Task and Life Manager. All rights reserved.</p>
           </div>
         </div>
       </footer>
